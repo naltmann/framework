@@ -1,7 +1,7 @@
 import {createHash} from "node:crypto";
 import {existsSync} from "node:fs";
 import {access, constants, copyFile, readFile, writeFile} from "node:fs/promises";
-import {basename, dirname, extname, join} from "node:path";
+import {basename, dirname, extname, join} from "node:path/posix";
 import type {Config} from "./config.js";
 import {Loader} from "./dataloader.js";
 import {CliError, isEnoent} from "./error.js";
@@ -73,6 +73,10 @@ export async function build(
     effects.output.write(`${faint("parse")} ${sourcePath} `);
     const start = performance.now();
     const page = await parseMarkdown(sourcePath, options);
+    if (page?.data?.draft) {
+      effects.logger.log(faint("(skipped)"));
+      continue;
+    }
     const resolvers = await getResolvers(page, {root, path: sourceFile});
     const elapsed = Math.floor(performance.now() - start);
     for (const f of resolvers.assets) files.add(resolvePath(sourceFile, f));
@@ -102,7 +106,7 @@ export async function build(
   // hash, or perhaps the Framework version number for built-in modules.
   if (addPublic) {
     for (const path of globalImports) {
-      if (path.startsWith("/_observablehq/")) {
+      if (path.startsWith("/_observablehq/") && path.endsWith(".js")) {
         const clientPath = getClientPath(`./src/client/${path === "/_observablehq/client.js" ? "index.js" : path.slice("/_observablehq/".length)}`); // prettier-ignore
         effects.output.write(`${faint("build")} ${clientPath} ${faint("→")} `);
         const define: {[key: string]: string} = {};
