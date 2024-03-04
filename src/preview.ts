@@ -357,7 +357,7 @@ function handleWatch(socket: WebSocket, req: IncomingMessage, {root, style}: Con
 
   async function hello({path: initialPath, hash: initialHash}: {path: string; hash: string}): Promise<void> {
     if (markdownWatcher || attachmentWatcher) throw new Error("already watching");
-    path = initialPath;
+    path = decodeURIComponent(initialPath);
     if (!(path = normalize(path)).startsWith("/")) throw new Error("Invalid path: " + initialPath);
     if (path.endsWith("/")) path += "index";
     path += ".md";
@@ -451,7 +451,7 @@ function diffCode(oldCode: Map<string, string>, newCode: Map<string, string>): C
   return patch;
 }
 
-type FileDeclaration = {name: string; mimeType: string | null; path: string};
+type FileDeclaration = {name: string; mimeType?: string; path: string};
 type FilePatch = {removed: string[]; added: FileDeclaration[]};
 
 function diffFiles(oldFiles: Map<string, string>, newFiles: Map<string, string>): FilePatch {
@@ -463,7 +463,7 @@ function diffFiles(oldFiles: Map<string, string>, newFiles: Map<string, string>)
   }
   for (const [name, path] of newFiles) {
     if (oldFiles.get(name) !== path) {
-      patch.added.push({name, mimeType: mime.getType(name), path});
+      patch.added.push({name, mimeType: mime.getType(name) ?? undefined, path});
     }
   }
   return patch;
